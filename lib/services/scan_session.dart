@@ -35,13 +35,14 @@ class ScanSessionService {
   /// Met à jour un document dans la session
   static ScanSession updateDocumentInSession(
       String documentId, String newImagePath,
-      {bool? isProcessed}) {
+      {bool? isProcessed, String? processedImagePath}) {
     final currentSession = getCurrentSession();
     final existingDoc =
         currentSession.documents.firstWhere((doc) => doc.id == documentId);
     final updatedDoc = existingDoc.copyWith(
       imagePath: newImagePath,
       isProcessed: isProcessed,
+      processedImagePath: processedImagePath,
     );
 
     _currentSession = currentSession.updateDocument(documentId, updatedDoc);
@@ -57,7 +58,10 @@ class ScanSessionService {
 
   /// Obtient tous les chemins d'images de la session
   static List<String> getAllImagePaths() {
-    return getCurrentSession().documents.map((doc) => doc.imagePath).toList();
+    return getCurrentSession()
+        .documents
+        .map((doc) => doc.processedImagePath ?? doc.imagePath)
+        .toList();
   }
 
   /// Obtient le nombre de documents dans la session

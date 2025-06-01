@@ -1,12 +1,14 @@
 class ScanDocument {
   final String id;
   final String imagePath;
+  final String? processedImagePath;
   final DateTime createdAt;
   final bool isProcessed;
 
   ScanDocument({
     required this.id,
     required this.imagePath,
+    this.processedImagePath,
     required this.createdAt,
     this.isProcessed = false,
   });
@@ -14,12 +16,14 @@ class ScanDocument {
   ScanDocument copyWith({
     String? id,
     String? imagePath,
+    String? processedImagePath,
     DateTime? createdAt,
     bool? isProcessed,
   }) {
     return ScanDocument(
       id: id ?? this.id,
       imagePath: imagePath ?? this.imagePath,
+      processedImagePath: processedImagePath ?? this.processedImagePath,
       createdAt: createdAt ?? this.createdAt,
       isProcessed: isProcessed ?? this.isProcessed,
     );

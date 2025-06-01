@@ -4,16 +4,18 @@ import '../services/image_processing_service.dart';
 import '../services/pdf_service.dart';
 import '../services/scan_session.dart';
 import '../models/scan_document.dart';
+import 'camera_screen.dart';
+import '../main.dart'; // Pour accéder à la liste cameras
 
 class PreviewScreen extends StatefulWidget {
   final String imagePath;
   final bool isFirstDocument; // Nouveau paramètre
 
   const PreviewScreen({
-    Key? key,
+    super.key,
     required this.imagePath,
     this.isFirstDocument = true,
-  }) : super(key: key);
+  });
 
   @override
   State<PreviewScreen> createState() => _PreviewScreenState();
@@ -74,29 +76,37 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<void> _processImage() async {
     setState(() {
       isProcessing = true;
-      processingStatus = 'Détection des contours...';
+      processingStatus = 'Traitement en cours...';
     });
 
     try {
+      // Traiter l'image avec OpenCV
       final processedPath =
-          await ImageProcessingService.processDocument(widget.imagePath);
+          await ImageProcessingService.processDocument(currentImagePath);
 
+      // Mettre à jour le chemin de l'image courante
       setState(() {
         currentImagePath = processedPath;
-        colorImagePath = processedPath; // Mettre à jour la version couleur
-        isBlackAndWhite = false; // Reset du mode N&B
-        processingStatus = 'Traitement terminé !';
       });
 
-      // Afficher le message de succès
+      // Mettre à jour le document dans la session avec le chemin traité
+      if (currentDocumentId != null) {
+        ScanSessionService.updateDocumentInSession(
+          currentDocumentId!,
+          currentImagePath,
+          isProcessed: true,
+          processedImagePath: processedPath,
+        );
+      }
+
       _showMessage(
-        'Image optimisée avec succès !',
+        'Image optimisée !',
         backgroundColor: Colors.green,
         icon: Icons.check_circle,
       );
     } catch (e) {
       _showMessage(
-        'Erreur traitement: $e',
+        'Erreur: $e',
         backgroundColor: Colors.red,
         icon: Icons.error,
       );
@@ -159,6 +169,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
           processingStatus = 'Version couleur restaurée !';
         });
 
+        // Mettre à jour le document dans la session avec la version couleur
+        if (currentDocumentId != null) {
+          ScanSessionService.updateDocumentInSession(
+            currentDocumentId!,
+            colorImagePath!,
+            processedImagePath: null, // Réinitialiser le chemin traité
+          );
+        }
+
         _showMessage(
           'Retour en couleur !',
           backgroundColor: Colors.green,
@@ -174,6 +193,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
           isBlackAndWhite = true;
           processingStatus = 'Conversion terminée !';
         });
+
+        // Mettre à jour le document dans la session avec la version N&B
+        if (currentDocumentId != null) {
+          ScanSessionService.updateDocumentInSession(
+            currentDocumentId!,
+            currentImagePath,
+            processedImagePath: bwPath,
+          );
+        }
 
         _showMessage(
           'Converti en noir et blanc !',
@@ -196,19 +224,55 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Future<void> _addAnotherPage() async {
     // Naviguer vers CameraScreen pour ajouter une nouvelle page
-    final result = await Navigator.pushNamed(context, '/camera');
-    if (result != null && result is String) {
-      // Une nouvelle image a été capturée, naviguer vers PreviewScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PreviewScreen(
-            imagePath: result,
-            isFirstDocument: false, // Ce n'est pas le premier document
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraScreen(cameras: cameras),
+      ),
+    );
+
+    // Mettre à jour le compteur de documents après le retour
+    setState(() {
+      totalDocuments = ScanSessionService.getDocumentCount();
+    });
+  }
+
+  void _showClearConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Wrap(
+            children: const [
+              Icon(Icons.delete_outline, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Effacer tous les documents ?'),
+            ],
           ),
-        ),
-      );
-    }
+          content: Text(
+              'Voulez-vous vraiment effacer les ${ScanSessionService.getDocumentCount()} document${ScanSessionService.getDocumentCount() > 1 ? 's' : ''} ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _clearDocuments();
+              },
+              child: const Text('Effacer', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _clearDocuments() {
+    ScanSessionService.clearCurrentSession();
+    // Retourner à l'écran principal
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _generateMultiPagePdf() async {
@@ -226,7 +290,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
             'scan_${documentCount}pages_${DateTime.now().millisecondsSinceEpoch}.pdf',
       );
 
+      // Afficher le dialogue de succès
       _showPdfSuccessDialog(pdfPath, documentCount);
+
+      // Réinitialiser la session après la sauvegarde réussie
+      ScanSessionService.finalizeSession();
+
+      // Retourner à l'écran principal après un court délai
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      });
     } catch (e) {
       _showMessage(
         'Erreur PDF: $e',
@@ -259,91 +332,94 @@ class _PreviewScreenState extends State<PreviewScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Row(
-            children: [
+          title: Wrap(
+            children: const [
               Icon(Icons.check_circle, color: Colors.green),
               SizedBox(width: 8),
               Text('PDF Sauvegardé !'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  '✅ PDF créé avec $pageCount page${pageCount > 1 ? 's' : ''} :'),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    '✅ PDF créé avec $pageCount page${pageCount > 1 ? 's' : ''} :'),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Icon(Icons.folder,
+                              color: Colors.green.shade700, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Emplacement:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(locationText, style: const TextStyle(fontSize: 13)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Icon(Icons.picture_as_pdf,
+                              color: Colors.red.shade600, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Fichier:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade600),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(fileName,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.folder,
-                            color: Colors.green.shade700, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Emplacement:',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade700),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(locationText, style: const TextStyle(fontSize: 13)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.picture_as_pdf,
-                            color: Colors.red.shade600, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Fichier:',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade600),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(fileName,
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.blue.shade700, size: 16),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: Colors.blue.shade700, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
                         locationText.contains('app')
                             ? 'Utilisez "Partager" pour envoyer le PDF'
                             : 'Accessible via l\'app "Fichiers"',
                         style: TextStyle(
                             fontSize: 11, color: Colors.blue.shade700),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -384,6 +460,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
             icon: const Icon(Icons.auto_fix_high),
             onPressed: isProcessing ? null : _processImage,
             tooltip: 'Optimiser l\'image',
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: isProcessing || isConverting
+                ? null
+                : _showClearConfirmationDialog,
+            tooltip: 'Effacer tous les documents',
           ),
         ],
       ),
