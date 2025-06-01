@@ -1,0 +1,43 @@
+name: document_scanner
+description: A simple document scanner app
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Interface
+  cupertino_icons: ^1.0.2
+  
+  # Caméra et images
+  camera: ^0.10.5+5
+  image: ^4.1.3
+  image_picker: ^1.0.4
+  
+  # PDF
+  pdf: ^3.10.6
+  printing: ^5.11.1
+  
+  # Stockage
+  path_provider: ^2.1.1
+  path: ^1.8.3
+  
+  # Permissions
+  permission_handler: ^11.0.1
+  
+  # Traitement d'images avancé
+  opencv_dart: ^1.0.4
+  
+  # Logging
+  logging: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
