@@ -25,7 +25,7 @@ class PdfService {
           pdf.addPage(
             pw.Page(
               pageFormat: PdfPageFormat.a4,
-              margin: pw.EdgeInsets.all(20),
+              margin: const pw.EdgeInsets.all(20),
               build: (pw.Context context) {
                 return pw.Center(
                   child: pw.Image(

@@ -4,11 +4,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'preview_screen.dart';
+import '../services/scan_session.dart';
 
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  const CameraScreen({Key? key, required this.cameras}) : super(key: key);
+  const CameraScreen({super.key, required this.cameras});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -64,17 +65,23 @@ class _CameraScreenState extends State<CameraScreen> {
 
       // Naviguer vers l'écran de prévisualisation
       if (mounted) {
-        Navigator.push(
+        // Vérifier si c'est le premier document de la session
+        final isFirstDocument = ScanSessionService.getDocumentCount() == 0;
+
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => PreviewScreen(imagePath: image.path),
+            builder: (context) => PreviewScreen(
+              imagePath: image.path,
+              isFirstDocument: isFirstDocument,
+            ),
           ),
         );
       }
     } catch (e) {
       print('Erreur lors de la prise de photo: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la prise de photo')),
+        const SnackBar(content: Text('Erreur lors de la prise de photo')),
       );
     } finally {
       setState(() {
@@ -87,7 +94,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Scanner Document'),
+        title: const Text('Scanner Document'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -117,7 +124,7 @@ class _CameraScreenState extends State<CameraScreen> {
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Center(
+                        child: const Center(
                           child: Text(
                             'Placez le document\ndans ce cadre',
                             textAlign: TextAlign.center,
@@ -153,12 +160,12 @@ class _CameraScreenState extends State<CameraScreen> {
                           ),
                         ),
                         child: isCapturing
-                            ? Center(
+                            ? const Center(
                                 child: CircularProgressIndicator(
                                   color: Colors.black,
                                 ),
                               )
-                            : Icon(
+                            : const Icon(
                                 Icons.camera_alt,
                                 size: 40,
                                 color: Colors.black,
@@ -169,7 +176,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
               ],
             )
-          : Center(
+          : const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
