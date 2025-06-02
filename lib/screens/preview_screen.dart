@@ -7,9 +7,22 @@ import '../models/scan_document.dart';
 import 'camera_screen.dart';
 import '../main.dart'; // Pour accéder à la liste cameras
 
+// Classe pour gérer l'historique des actions
+class ImageAction {
+  final String imagePath;
+  final String actionName;
+  final DateTime timestamp;
+
+  ImageAction({
+    required this.imagePath,
+    required this.actionName,
+    required this.timestamp,
+  });
+}
+
 class PreviewScreen extends StatefulWidget {
   final String imagePath;
-  final bool isFirstDocument; // Nouveau paramètre
+  final bool isFirstDocument;
 
   const PreviewScreen({
     super.key,
@@ -23,20 +36,21 @@ class PreviewScreen extends StatefulWidget {
 
 class _PreviewScreenState extends State<PreviewScreen> {
   String currentImagePath = '';
-  String? colorImagePath; // Garde une référence à la version couleur
-  String? currentDocumentId; // ID du document courant
+  String originalImagePath = ''; // Chemin de l'image originale
+  String? currentDocumentId;
   bool isProcessing = false;
   bool isConverting = false;
-  bool isBlackAndWhite = false; // Track du mode N&B
   String processingStatus = '';
-  int totalDocuments = 0; // Nombre total de documents dans la session
+  int totalDocuments = 0;
+
+  // Historique des actions pour le système d'undo
+  List<ImageAction> actionHistory = [];
 
   @override
   void initState() {
     super.initState();
     currentImagePath = widget.imagePath;
-    colorImagePath =
-        widget.imagePath; // Sauvegarder la version couleur originale
+    originalImagePath = widget.imagePath; // Sauvegarder l'original
 
     // Ajouter le document à la session
     if (widget.isFirstDocument) {
@@ -45,14 +59,19 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final session = ScanSessionService.addDocumentToSession(widget.imagePath);
     currentDocumentId = session.documents.last.id;
     totalDocuments = session.documents.length;
+
+    // Initialiser l'historique avec l'image originale
+    actionHistory.add(ImageAction(
+      imagePath: originalImagePath,
+      actionName: 'Original',
+      timestamp: DateTime.now(),
+    ));
   }
 
   /// Affiche un message en remplaçant le précédent
   void _showMessage(String message, {Color? backgroundColor, IconData? icon}) {
-    // Supprimer le SnackBar précédent immédiatement
     ScaffoldMessenger.of(context).clearSnackBars();
 
-    // Afficher le nouveau en haut de l'écran
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -67,9 +86,63 @@ class _PreviewScreenState extends State<PreviewScreen> {
         backgroundColor: backgroundColor ?? Colors.blue,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(
-            16, 16, 16, 0), // En haut : top=16, bottom=0
+        margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       ),
+    );
+  }
+
+  /// Ajoute une action à l'historique
+  void _addToHistory(String imagePath, String actionName) {
+    actionHistory.add(ImageAction(
+      imagePath: imagePath,
+      actionName: actionName,
+      timestamp: DateTime.now(),
+    ));
+
+    // Limiter l'historique à 10 actions pour éviter une consommation excessive de mémoire
+    if (actionHistory.length > 10) {
+      actionHistory.removeAt(0);
+    }
+  }
+
+  /// Annule la dernière action (Undo)
+  Future<void> _undoLastAction() async {
+    if (actionHistory.length <= 1) {
+      _showMessage(
+        'Aucune action à annuler',
+        backgroundColor: Colors.orange,
+        icon: Icons.info,
+      );
+      return;
+    }
+
+    // Supprimer l'action courante
+    actionHistory.removeLast();
+
+    // Revenir à l'action précédente
+    final previousAction = actionHistory.last;
+
+    setState(() {
+      currentImagePath = previousAction.imagePath;
+      isProcessing = false;
+    });
+
+    // Mettre à jour le document dans la session
+    if (currentDocumentId != null) {
+      ScanSessionService.updateDocumentInSession(
+        currentDocumentId!,
+        currentImagePath,
+        processedImagePath: previousAction.imagePath != originalImagePath
+            ? previousAction.imagePath
+            : null,
+        isProcessed: previousAction.imagePath != originalImagePath,
+      );
+    }
+
+    _showMessage(
+      'Action annulée - Retour à: ${previousAction.actionName}',
+      backgroundColor: Colors.blue,
+      icon: Icons.undo,
     );
   }
 
@@ -80,16 +153,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
     });
 
     try {
-      // Traiter l'image avec OpenCV
       final processedPath =
           await ImageProcessingService.processDocument(currentImagePath);
 
-      // Mettre à jour le chemin de l'image courante
       setState(() {
         currentImagePath = processedPath;
       });
 
-      // Mettre à jour le document dans la session avec le chemin traité
+      // Ajouter à l'historique
+      _addToHistory(processedPath, 'Optimisé');
+
+      // Mettre à jour le document dans la session
       if (currentDocumentId != null) {
         ScanSessionService.updateDocumentInSession(
           currentDocumentId!,
@@ -129,10 +203,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
       setState(() {
         currentImagePath = flippedPath;
-        colorImagePath = flippedPath; // Mettre à jour la version couleur
-        isBlackAndWhite = false; // Reset du mode N&B
-        processingStatus = 'Image retournée !';
       });
+
+      // Ajouter à l'historique
+      _addToHistory(flippedPath, 'Retourné');
 
       _showMessage(
         'Image retournée !',
@@ -155,60 +229,34 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<void> _toggleBlackAndWhite() async {
     setState(() {
       isProcessing = true;
-      processingStatus = isBlackAndWhite
-          ? 'Retour en couleur...'
-          : 'Conversion noir et blanc...';
+      processingStatus = 'Conversion noir et blanc...';
     });
 
     try {
-      if (isBlackAndWhite) {
-        // Revenir à la version couleur
-        setState(() {
-          currentImagePath = colorImagePath!;
-          isBlackAndWhite = false;
-          processingStatus = 'Version couleur restaurée !';
-        });
+      final bwPath =
+          await ImageProcessingService.convertToBlackAndWhite(currentImagePath);
 
-        // Mettre à jour le document dans la session avec la version couleur
-        if (currentDocumentId != null) {
-          ScanSessionService.updateDocumentInSession(
-            currentDocumentId!,
-            colorImagePath!,
-            processedImagePath: null, // Réinitialiser le chemin traité
-          );
-        }
+      setState(() {
+        currentImagePath = bwPath;
+      });
 
-        _showMessage(
-          'Retour en couleur !',
-          backgroundColor: Colors.green,
-          icon: Icons.color_lens,
-        );
-      } else {
-        // Convertir en noir et blanc
-        final bwPath = await ImageProcessingService.convertToBlackAndWhite(
-            currentImagePath);
+      // Ajouter à l'historique
+      _addToHistory(bwPath, 'Noir & Blanc');
 
-        setState(() {
-          currentImagePath = bwPath;
-          isBlackAndWhite = true;
-          processingStatus = 'Conversion terminée !';
-        });
-
-        // Mettre à jour le document dans la session avec la version N&B
-        if (currentDocumentId != null) {
-          ScanSessionService.updateDocumentInSession(
-            currentDocumentId!,
-            currentImagePath,
-            processedImagePath: bwPath,
-          );
-        }
-
-        _showMessage(
-          'Converti en noir et blanc !',
-          backgroundColor: Colors.grey.shade700,
-          icon: Icons.contrast,
+      // Mettre à jour le document dans la session
+      if (currentDocumentId != null) {
+        ScanSessionService.updateDocumentInSession(
+          currentDocumentId!,
+          currentImagePath,
+          processedImagePath: bwPath,
         );
       }
+
+      _showMessage(
+        'Converti en noir et blanc !',
+        backgroundColor: Colors.grey.shade700,
+        icon: Icons.contrast,
+      );
     } catch (e) {
       _showMessage(
         'Erreur: $e',
@@ -222,8 +270,23 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
+  /// Reprendre la photo (supprimer le document courant et retourner à la caméra)
+  Future<void> _retakePhoto() async {
+    // Supprimer le document courant de la session
+    if (currentDocumentId != null) {
+      ScanSessionService.removeDocumentFromSession(currentDocumentId!);
+    }
+
+    // Retourner à la caméra
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraScreen(cameras: cameras),
+      ),
+    );
+  }
+
   Future<void> _addAnotherPage() async {
-    // Naviguer vers CameraScreen pour ajouter une nouvelle page
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -231,7 +294,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ),
     );
 
-    // Mettre à jour le compteur de documents après le retour
     setState(() {
       totalDocuments = ScanSessionService.getDocumentCount();
     });
@@ -271,7 +333,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   void _clearDocuments() {
     ScanSessionService.clearCurrentSession();
-    // Retourner à l'écran principal
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
@@ -290,13 +351,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
             'scan_${documentCount}pages_${DateTime.now().millisecondsSinceEpoch}.pdf',
       );
 
-      // Afficher le dialogue de succès
       _showPdfSuccessDialog(pdfPath, documentCount);
 
-      // Réinitialiser la session après la sauvegarde réussie
       ScanSessionService.finalizeSession();
 
-      // Retourner à l'écran principal après un court délai
       Future.delayed(const Duration(seconds: 2), () {
         Navigator.of(context).popUntil((route) => route.isFirst);
       });
@@ -314,7 +372,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   void _showPdfSuccessDialog(String pdfPath, int pageCount) {
-    // Extraire le nom du fichier et déterminer l'emplacement
     final fileName = pdfPath.split('/').last;
     final isInDownloads = pdfPath.contains('/Download/');
     final isInPublicDocs = pdfPath.contains('/storage/emulated/0/Documents');
@@ -456,10 +513,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         actions: [
+          // Bouton Undo
           IconButton(
-            icon: const Icon(Icons.auto_fix_high),
-            onPressed: isProcessing ? null : _processImage,
-            tooltip: 'Optimiser l\'image',
+            icon: const Icon(Icons.undo, color: Colors.white),
+            onPressed:
+                (isProcessing || isConverting || actionHistory.length <= 1)
+                    ? null
+                    : _undoLastAction,
+            tooltip: 'Annuler la dernière action',
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -494,6 +555,37 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ),
             ),
 
+          // Affichage de l'action courante
+          if (actionHistory.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey.shade100,
+              child: Row(
+                children: [
+                  Icon(Icons.history, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    'État actuel: ${actionHistory.last.actionName}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (actionHistory.length > 1)
+                    Text(
+                      '${actionHistory.length - 1} action${actionHistory.length > 2 ? 's' : ''} à annuler',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue.shade600,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
           // Image
           Expanded(
             child: Container(
@@ -521,41 +613,53 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
+                        onPressed: isProcessing ? null : _processImage,
+                        child: const Icon(Icons.auto_fix_high),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.grey.shade800,
+                          padding: EdgeInsets.all(12),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
                         onPressed: isProcessing ? null : _toggleBlackAndWhite,
-                        icon: Icon(isBlackAndWhite
-                            ? Icons.color_lens
-                            : Icons.contrast),
-                        label: Text(isBlackAndWhite ? 'Couleur' : 'N&B'),
+                        child: const Icon(Icons.contrast),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isBlackAndWhite
-                              ? Colors.blue
-                              : Colors.grey.shade700,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.grey.shade800,
+                          padding: EdgeInsets.all(12),
+                          elevation: 0,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         onPressed: isProcessing ? null : _flipImage,
-                        icon: const Icon(Icons.flip),
-                        label: const Text('Retourner'),
+                        child: const Icon(Icons.flip),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.grey.shade800,
+                          padding: EdgeInsets.all(12),
+                          elevation: 0,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Reprendre'),
+                      child: ElevatedButton(
+                        onPressed: isProcessing ? null : _retakePhoto,
+                        child: const Icon(Icons.refresh),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.grey.shade800,
+                          padding: EdgeInsets.all(12),
+                          elevation: 0,
                         ),
                       ),
                     ),
@@ -572,12 +676,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     label: const Text(
                       'Ajouter une page',
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
+                      backgroundColor: Colors.blue.shade600,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 2,
                     ),
                   ),
                 ),
@@ -606,12 +711,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           ? 'Conversion...'
                           : 'Générer PDF (${ScanSessionService.getDocumentCount()} page${ScanSessionService.getDocumentCount() > 1 ? 's' : ''})',
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade600,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 3,
                     ),
                   ),
                 ),
