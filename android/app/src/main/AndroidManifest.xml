@@ -10,9 +10,9 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
                      android:minSdkVersion="30" />
     <application
-        android:label="document_scanner"
+        android:label="Only Scan"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/doc_scanner_logo">
     
         <activity
             android:name=".MainActivity"
