@@ -1,5 +1,5 @@
-name: document_scanner
-description: A simple document scanner app
+name: only_scan
+description: Only Scan - Professional document scanner that converts photos to PDF
 version: 1.0.0+1
 
 environment:
