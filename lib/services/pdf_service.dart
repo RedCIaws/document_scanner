@@ -50,10 +50,8 @@ class PdfService {
       final File pdfFile = File(pdfPath);
       await pdfFile.writeAsBytes(await pdf.save());
 
-      print('✅ PDF sauvegardé dans: $pdfPath');
       return pdfPath;
     } catch (e) {
-      print('❌ Erreur création PDF: $e');
       throw Exception('Impossible de créer le PDF: $e');
     }
   }
@@ -77,10 +75,9 @@ class PdfService {
 
       if (status.isPermanentlyDenied || manageStatus.isPermanentlyDenied) {
         // Guider l'utilisateur vers les paramètres
-        print('⚠️ Permission refusée de façon permanente');
         await openAppSettings();
       } else if (status.isDenied) {
-        print('⚠️ Permission refusée, utilisation du dossier app');
+        // Permission denied, will use app folder
       }
     }
   }
@@ -97,7 +94,7 @@ class PdfService {
           return '${publicDocsDir.path}/$fileName';
         }
       } catch (e) {
-        print('Impossible d\'accéder au dossier Documents public: $e');
+        // Cannot access public Documents folder
       }
 
       // Fallback: dossier Downloads
@@ -108,7 +105,7 @@ class PdfService {
           return '${downloadsDir.path}/$fileName';
         }
       } catch (e) {
-        print('Impossible d\'accéder au dossier Downloads: $e');
+        // Cannot access Downloads folder
       }
 
       // Fallback: dossier Documents externe (accessible via partage)
@@ -123,13 +120,13 @@ class PdfService {
           return '${documentsDir.path}/$fileName';
         }
       } catch (e) {
-        print('Impossible d\'accéder au stockage externe: $e');
+        // Cannot access external storage
       }
     }
 
     // Fallback final: dossier app (toujours accessible)
     final Directory appDir = await getApplicationDocumentsDirectory();
-    print('📁 Utilisation du dossier app: ${appDir.path}');
+    // Using app folder as fallback
     return '${appDir.path}/$fileName';
   }
 
@@ -141,7 +138,7 @@ class PdfService {
       }
       return true;
     } catch (e) {
-      print('Impossible de créer le dossier: $e');
+      // Cannot create directory
       return false;
     }
   }
@@ -163,7 +160,6 @@ class PdfService {
         );
       }
     } catch (e) {
-      print('Erreur partage PDF: $e');
       throw Exception('Impossible de partager le PDF: $e');
     }
   }
@@ -179,21 +175,19 @@ class PdfService {
       // Essayer d'ouvrir directement avec OpenFilex
       try {
         final result = await OpenFilex.open(pdfPath);
-        print('📖 Ouverture PDF: ${result.message}');
         
         if (result.type == ResultType.done) {
           return; // Succès
         }
       } catch (e) {
-        print('⚠️ Échec ouverture directe: $e');
+        // Direct opening failed
       }
 
       // Fallback: utiliser le partage pour permettre l'ouverture
-      print('🔄 Utilisation du partage comme alternative...');
+      // Using share as alternative
       await sharePdf(pdfPath);
       
     } catch (e) {
-      print('❌ Erreur ouverture PDF: $e');
       throw Exception('Impossible d\'ouvrir le PDF: $e');
     }
   }
@@ -215,7 +209,7 @@ class PdfService {
 
       return [];
     } catch (e) {
-      print('Erreur récupération PDFs: $e');
+      // Error retrieving PDFs
       return [];
     }
   }
@@ -230,7 +224,7 @@ class PdfService {
       }
       return false;
     } catch (e) {
-      print('Erreur suppression PDF: $e');
+      // Error deleting PDF
       return false;
     }
   }

@@ -5,7 +5,6 @@ class ImageProcessingService {
   /// Détecte automatiquement les contours du document et applique la correction de perspective
   static Future<String> processDocument(String imagePath) async {
     try {
-      print('🔍 Début du traitement avec OpenCV...');
 
       // 1. Charger l'image avec OpenCV
       final cv.Mat originalImage = cv.imread(imagePath);
@@ -13,7 +12,6 @@ class ImageProcessingService {
         throw Exception('Impossible de charger l\'image');
       }
 
-      print('📐 Image chargée: ${originalImage.cols}x${originalImage.rows}');
 
       // 2. Redimensionner pour le traitement (améliore les performances)
       final cv.Mat resized = _resizeImage(originalImage, 800);
@@ -24,13 +22,11 @@ class ImageProcessingService {
       final cv.Mat blurred = cv.gaussianBlur(gray, (5, 5), 0);
       final cv.Mat edges = _adaptiveEdgeDetection(blurred);
 
-      print('🔍 Détection des contours...');
 
       // 4. Détecter les contours du document
       final corners = _findDocumentCorners(edges);
 
       if (corners.isNotEmpty) {
-        print('📍 Coins détectés: ${corners.length}');
 
         // 5. Ajuster les coordonnées à l'image originale
         final adjustedCorners = corners
@@ -52,10 +48,8 @@ class ImageProcessingService {
             imagePath.replaceAll('.jpg', '_processed.jpg');
         cv.imwrite(processedPath, enhanced);
 
-        print('✅ Traitement terminé: $processedPath');
         return processedPath;
       } else {
-        print('⚠️ Aucun document détecté, amélioration simple...');
 
         // Si pas de document détecté, améliorer l'image originale
         final cv.Mat enhanced = _enhanceDocument(originalImage);
@@ -66,8 +60,7 @@ class ImageProcessingService {
         return processedPath;
       }
     } catch (e) {
-      print('❌ Erreur traitement OpenCV: $e');
-      return imagePath; // Retourner l'image originale en cas d'erreur
+      return imagePath; // Return original image on error
     }
   }
 
@@ -96,27 +89,23 @@ class ImageProcessingService {
       // Stratégie 1: Détection standard
       List<cv.Point2f> corners = _findCornersStandard(edges);
       if (corners.isNotEmpty && _validateCorners(corners, edges)) {
-        print('📐 Détection standard réussie');
         return corners;
       }
 
       // Stratégie 2: Détection avec morphologie
       corners = _findCornersWithMorphology(edges);
       if (corners.isNotEmpty && _validateCorners(corners, edges)) {
-        print('📐 Détection morphologique réussie');
         return corners;
       }
 
       // Stratégie 3: Détection relaxée
       corners = _findCornersRelaxed(edges);
       if (corners.isNotEmpty && _validateCorners(corners, edges)) {
-        print('📐 Détection relaxée réussie');
         return corners;
       }
 
       return [];
     } catch (e) {
-      print('❌ Erreur détection coins: $e');
       return [];
     }
   }
@@ -304,7 +293,6 @@ class ImageProcessingService {
       final lower = math.max(0, (1.0 - sigma) * median).round();
       final upper = math.min(255, (1.0 + sigma) * median).round();
 
-      print('📊 Seuils adaptatifs: $lower - $upper (moyenne: ${mean.toStringAsFixed(1)}, écart-type: ${stdDev.toStringAsFixed(1)})');
 
       // Appliquer Canny avec les seuils calculés
       cv.Mat edges = cv.canny(grayImage, lower.toDouble(), upper.toDouble());
@@ -314,7 +302,6 @@ class ImageProcessingService {
       final contours = contourResult.$1;
 
       if (contours.isEmpty || contours.length < 3) {
-        print('🔄 Seuils adaptatifs insuffisants, essai avec seuils alternatifs...');
         
         // Essayer avec des seuils plus conservateurs
         edges = cv.canny(grayImage, 50, 150);
@@ -328,8 +315,7 @@ class ImageProcessingService {
 
       return edges;
     } catch (e) {
-      print('❌ Erreur détection adaptative: $e');
-      // Fallback vers Canny classique
+      // Fallback to classic Canny
       return cv.canny(grayImage, 75, 200);
     }
   }
@@ -346,7 +332,6 @@ class ImageProcessingService {
       final maxWidth = math.max(topWidth, bottomWidth).round();
       final maxHeight = math.max(leftHeight, rightHeight).round();
 
-      print('📏 Dimensions cible: ${maxWidth}x$maxHeight');
 
       // Points de destination (rectangle parfait)
       final dst = [
@@ -378,7 +363,6 @@ class ImageProcessingService {
 
       return corrected;
     } catch (e) {
-      print('❌ Erreur correction perspective: $e');
       return image.clone();
     }
   }
@@ -396,7 +380,6 @@ class ImageProcessingService {
 
       return image.clone();
     } catch (e) {
-      print('❌ Erreur correction orientation: $e');
       return image.clone();
     }
   }
@@ -412,10 +395,8 @@ class ImageProcessingService {
       final String flippedPath = imagePath.replaceAll('.jpg', '_flipped.jpg');
       cv.imwrite(flippedPath, flipped);
 
-      print('🔄 Image retournée: $flippedPath');
       return flippedPath;
     } catch (e) {
-      print('❌ Erreur flip: $e');
       return imagePath;
     }
   }
@@ -430,11 +411,9 @@ class ImageProcessingService {
   /// Améliore la qualité du document avec analyse adaptative
   static cv.Mat _enhanceDocument(cv.Mat image) {
     try {
-      print('🎨 Amélioration adaptative...');
 
       // Analyser les caractéristiques de l'image
       final imageStats = _analyzeImageCharacteristics(image);
-      print('📊 Stats image: luminosité=${imageStats['brightness']?.toStringAsFixed(1)}, contraste=${imageStats['contrast']?.toStringAsFixed(1)}');
 
       cv.Mat enhanced = image.clone();
 
@@ -457,10 +436,8 @@ class ImageProcessingService {
       // 5. Amélioration finale du contraste
       enhanced = _enhanceContrast(enhanced);
 
-      print('✅ Amélioration adaptative terminée');
       return enhanced;
     } catch (e) {
-      print('❌ Erreur amélioration: $e');
       return _basicEnhancement(image);
     }
   }
@@ -498,7 +475,6 @@ class ImageProcessingService {
         'noiseLevel': laplacianVariance,
       };
     } catch (e) {
-      print('❌ Erreur analyse image: $e');
       return {
         'brightness': 128.0,
         'contrast': 50.0,
@@ -559,7 +535,6 @@ class ImageProcessingService {
       
       return cv.cvtColor(enhancedHsv, cv.COLOR_HSV2BGR);
     } catch (e) {
-      print('❌ Erreur correction ombres: $e');
       return image.clone();
     }
   }
@@ -587,7 +562,6 @@ class ImageProcessingService {
       final sharpened = cv.filter2D(image, -1, kernel);
       return cv.addWeighted(image, 1.0 - weight, sharpened, weight, 0);
     } catch (e) {
-      print('❌ Erreur netteté adaptative: $e');
       return image.clone();
     }
   }
@@ -598,7 +572,6 @@ class ImageProcessingService {
       // Utiliser un filtre bilatéral pour préserver les contours tout en réduisant le bruit
       return cv.bilateralFilter(image, 9, 75, 75);
     } catch (e) {
-      print('❌ Erreur réduction bruit: $e');
       return image.clone();
     }
   }
@@ -619,7 +592,6 @@ class ImageProcessingService {
       // Mélanger avec plus de poids sur l'original pour préserver le texte
       return cv.addWeighted(image, 0.8, enhancedBgr, 0.2, 0);
     } catch (e) {
-      print('❌ Erreur amélioration contraste: $e');
       return image.clone();
     }
   }
@@ -638,7 +610,6 @@ class ImageProcessingService {
       // Moins de netteté pour éviter les artefacts
       return cv.addWeighted(enhanced, 0.85, sharpened, 0.15, 0);
     } catch (e) {
-      print('❌ Erreur amélioration de base: $e');
       return image.clone();
     }
   }
@@ -646,7 +617,6 @@ class ImageProcessingService {
   /// Convertit l'image en noir et blanc avec seuillage adaptatif
   static Future<String> convertToBlackAndWhite(String imagePath) async {
     try {
-      print('⚫ Conversion noir et blanc...');
 
       final cv.Mat image = cv.imread(imagePath);
       if (image.isEmpty) return imagePath;
@@ -668,10 +638,8 @@ class ImageProcessingService {
       final String bwPath = imagePath.replaceAll('.jpg', '_bw.jpg');
       cv.imwrite(bwPath, binary);
 
-      print('✅ Conversion terminée: $bwPath');
       return bwPath;
     } catch (e) {
-      print('❌ Erreur conversion N&B: $e');
       return imagePath;
     }
   }

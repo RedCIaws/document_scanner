@@ -11,7 +11,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    print('Erreur lors de l\'initialisation des caméras: $e');
+    // Cameras will remain empty if initialization fails
   }
 
   runApp(const DocumentScannerApp());
@@ -40,14 +40,18 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Only Scan'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      // Add flexible spacing at top
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.05),
                   // Welcome Card
                   Card(
                     child: Padding(
@@ -98,35 +102,41 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
+                      // Add flexible spacing at bottom
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            
-            // Main Action Button at bottom
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (cameras.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CameraScreen(cameras: cameras),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Aucune caméra disponible')),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.camera_alt, size: 28),
-                label: const Text('Commencer le scan'),
-                style: AppTheme.primaryButtonStyle,
+              
+              // Main Action Button at bottom
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      if (cameras.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CameraScreen(cameras: cameras),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Aucune caméra disponible')),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.camera_alt, size: 28),
+                    label: const Text('Commencer le scan'),
+                    style: AppTheme.primaryButtonStyle,
+                  ),
+                ),
               ),
-            ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-          ],
+            ],
+          ),
         ),
       ),
     );

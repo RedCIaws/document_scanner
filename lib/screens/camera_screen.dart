@@ -42,7 +42,7 @@ class _CameraScreenState extends State<CameraScreen> {
         });
       }
     } catch (e) {
-      print('Erreur d\'initialisation caméra: $e');
+      // Camera initialization failed
     }
   }
 
@@ -79,7 +79,6 @@ class _CameraScreenState extends State<CameraScreen> {
         );
       }
     } catch (e) {
-      print('Erreur lors de la prise de photo: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erreur lors de la prise de photo')),
       );
