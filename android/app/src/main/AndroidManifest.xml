@@ -12,7 +12,7 @@
     <application
         android:label="Only Scan"
         android:name="${applicationName}"
-        android:icon="@mipmap/doc_scanner_logo">
+        android:icon="@mipmap/only_scan_logo">
     
         <activity
             android:name=".MainActivity"
