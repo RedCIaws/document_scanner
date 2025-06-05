@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:open_filex/open_filex.dart';
 
 class PdfService {
   /// Crée un PDF à partir d'une liste d'images
@@ -60,10 +61,21 @@ class PdfService {
   /// Demande les permissions de stockage nécessaires
   static Future<void> _requestStoragePermission() async {
     if (Platform.isAndroid) {
-      // Demander la permission de base
+      // Pour Android 11+ (API 30+), essayer d'abord MANAGE_EXTERNAL_STORAGE
+      if (await Permission.manageExternalStorage.isGranted) {
+        return; // Permission déjà accordée
+      }
+      
+      // Demander MANAGE_EXTERNAL_STORAGE pour Android 11+
+      final manageStatus = await Permission.manageExternalStorage.request();
+      if (manageStatus.isGranted) {
+        return; // Permission accordée
+      }
+      
+      // Fallback: demander la permission de stockage classique
       final status = await Permission.storage.request();
 
-      if (status.isPermanentlyDenied) {
+      if (status.isPermanentlyDenied || manageStatus.isPermanentlyDenied) {
         // Guider l'utilisateur vers les paramètres
         print('⚠️ Permission refusée de façon permanente');
         await openAppSettings();
@@ -156,17 +168,32 @@ class PdfService {
     }
   }
 
-  /// Ouvre le PDF dans un viewer
+  /// Ouvre le PDF avec l'application système par défaut
   static Future<void> openPdf(String pdfPath) async {
     try {
       final File pdfFile = File(pdfPath);
-      if (await pdfFile.exists()) {
-        await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async => await pdfFile.readAsBytes(),
-        );
+      if (!await pdfFile.exists()) {
+        throw Exception('Le fichier PDF n\'existe pas: $pdfPath');
       }
+
+      // Essayer d'ouvrir directement avec OpenFilex
+      try {
+        final result = await OpenFilex.open(pdfPath);
+        print('📖 Ouverture PDF: ${result.message}');
+        
+        if (result.type == ResultType.done) {
+          return; // Succès
+        }
+      } catch (e) {
+        print('⚠️ Échec ouverture directe: $e');
+      }
+
+      // Fallback: utiliser le partage pour permettre l'ouverture
+      print('🔄 Utilisation du partage comme alternative...');
+      await sharePdf(pdfPath);
+      
     } catch (e) {
-      print('Erreur ouverture PDF: $e');
+      print('❌ Erreur ouverture PDF: $e');
       throw Exception('Impossible d\'ouvrir le PDF: $e');
     }
   }

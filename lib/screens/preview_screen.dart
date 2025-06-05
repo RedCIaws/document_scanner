@@ -45,6 +45,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   // Historique des actions pour le système d'undo
   List<ImageAction> actionHistory = [];
+  
+  // Suivi des opérations appliquées pour éviter les doublons
+  Set<String> appliedOperations = {};
 
   @override
   void initState() {
@@ -99,6 +102,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
       timestamp: DateTime.now(),
     ));
 
+    // Ajouter l'opération aux opérations appliquées
+    appliedOperations.add(actionName);
+
     // Limiter l'historique à 10 actions pour éviter une consommation excessive de mémoire
     if (actionHistory.length > 10) {
       actionHistory.removeAt(0);
@@ -116,8 +122,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return;
     }
 
-    // Supprimer l'action courante
-    actionHistory.removeLast();
+    // Supprimer l'action courante et la retirer des opérations appliquées
+    final removedAction = actionHistory.removeLast();
+    appliedOperations.remove(removedAction.actionName);
 
     // Revenir à l'action précédente
     final previousAction = actionHistory.last;
@@ -147,6 +154,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _processImage() async {
+    // Vérifier si l'opération a déjà été appliquée
+    if (appliedOperations.contains('Optimisé')) {
+      _showMessage(
+        'Image déjà optimisée. Annulez d\'abord l\'opération précédente.',
+        backgroundColor: Colors.orange,
+        icon: Icons.info,
+      );
+      return;
+    }
+
     setState(() {
       isProcessing = true;
       processingStatus = 'Traitement en cours...';
@@ -192,6 +209,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _flipImage() async {
+    // Vérifier si l'opération a déjà été appliquée
+    if (appliedOperations.contains('Retourné')) {
+      _showMessage(
+        'Image déjà retournée. Annulez d\'abord l\'opération précédente.',
+        backgroundColor: Colors.orange,
+        icon: Icons.info,
+      );
+      return;
+    }
+
     setState(() {
       isProcessing = true;
       processingStatus = 'Retournement de l\'image...';
@@ -227,6 +254,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _toggleBlackAndWhite() async {
+    // Vérifier si l'opération a déjà été appliquée
+    if (appliedOperations.contains('Noir & Blanc')) {
+      _showMessage(
+        'Image déjà en noir et blanc. Annulez d\'abord l\'opération précédente.',
+        backgroundColor: Colors.orange,
+        icon: Icons.info,
+      );
+      return;
+    }
+
     setState(() {
       isProcessing = true;
       processingStatus = 'Conversion noir et blanc...';
@@ -354,10 +391,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
       _showPdfSuccessDialog(pdfPath, documentCount);
 
       ScanSessionService.finalizeSession();
-
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      });
     } catch (e) {
       _showMessage(
         'Erreur PDF: $e',
@@ -480,19 +513,43 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).popUntil((route) => route.isFirst); // Go back to main screen
+              },
               child: const Text('OK'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                try {
+                  await PdfService.openPdf(pdfPath);
+                  Navigator.of(context).pop(); // Close dialog after successful open
+                  Navigator.of(context).popUntil((route) => route.isFirst); // Go back to main screen
+                } catch (e) {
+                  // Don't close dialog on error, just show message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Utilisez "Partager" pour ouvrir le PDF'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Ouvrir'),
+            ),
+            TextButton(
+              onPressed: () async {
                 try {
                   await PdfService.sharePdf(pdfPath);
+                  Navigator.of(context).pop(); // Close dialog after successful share
+                  Navigator.of(context).popUntil((route) => route.isFirst); // Go back to main screen
                 } catch (e) {
-                  _showMessage(
-                    'Erreur partage: $e',
-                    backgroundColor: Colors.red,
-                    icon: Icons.error,
+                  // Don't close dialog on error, just show message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur partage: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               },
@@ -606,7 +663,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
           // Boutons d'action
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.of(context).padding.bottom,
+            ),
             child: Column(
               children: [
                 // Première ligne de boutons
@@ -614,11 +676,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: isProcessing ? null : _processImage,
+                        onPressed: (isProcessing || appliedOperations.contains('Optimisé')) ? null : _processImage,
                         child: const Icon(Icons.auto_fix_high),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.grey.shade800,
+                          backgroundColor: appliedOperations.contains('Optimisé') 
+                              ? Colors.green.shade100 
+                              : Colors.grey.shade200,
+                          foregroundColor: appliedOperations.contains('Optimisé')
+                              ? Colors.green.shade600
+                              : Colors.grey.shade800,
                           padding: EdgeInsets.all(12),
                           elevation: 0,
                         ),
@@ -627,11 +693,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: isProcessing ? null : _toggleBlackAndWhite,
+                        onPressed: (isProcessing || appliedOperations.contains('Noir & Blanc')) ? null : _toggleBlackAndWhite,
                         child: const Icon(Icons.contrast),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.grey.shade800,
+                          backgroundColor: appliedOperations.contains('Noir & Blanc')
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          foregroundColor: appliedOperations.contains('Noir & Blanc')
+                              ? Colors.white
+                              : Colors.grey.shade800,
                           padding: EdgeInsets.all(12),
                           elevation: 0,
                         ),
@@ -640,11 +710,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: isProcessing ? null : _flipImage,
+                        onPressed: (isProcessing || appliedOperations.contains('Retourné')) ? null : _flipImage,
                         child: const Icon(Icons.flip),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.grey.shade800,
+                          backgroundColor: appliedOperations.contains('Retourné')
+                              ? Colors.blue.shade100
+                              : Colors.grey.shade200,
+                          foregroundColor: appliedOperations.contains('Retourné')
+                              ? Colors.blue.shade600
+                              : Colors.grey.shade800,
                           padding: EdgeInsets.all(12),
                           elevation: 0,
                         ),
