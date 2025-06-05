@@ -565,13 +565,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(
-            'Aperçu (${ScanSessionService.getDocumentCount()} page${ScanSessionService.getDocumentCount() > 1 ? 's' : ''})'),
+        title: const Text('Preview'),
         actions: [
           // Bouton Undo
           IconButton(
-            icon: const Icon(Icons.undo, color: Colors.white),
+            icon: const Icon(Icons.undo),
             onPressed:
                 (isProcessing || isConverting || actionHistory.length <= 1)
                     ? null
@@ -587,8 +587,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.appGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
           // Indicateur de traitement
           if (isProcessing || isConverting)
             Container(
@@ -681,17 +686,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       child: ElevatedButton(
                         onPressed: (isProcessing || appliedOperations.contains('Optimisé')) ? null : _processImage,
                         child: const Icon(Icons.auto_fix_high),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: appliedOperations.contains('Optimisé') 
-                              ? AppTheme.accent 
-                              : AppTheme.lightTeal,
-                          foregroundColor: appliedOperations.contains('Optimisé')
-                              ? Colors.white
-                              : AppTheme.darkTeal,
-                          padding: const EdgeInsets.all(14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          elevation: 4,
-                        ),
+                        style: appliedOperations.contains('Optimisé')
+                            ? AppTheme.processingButtonAppliedStyle
+                            : AppTheme.processingButtonStyle,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -699,17 +696,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       child: ElevatedButton(
                         onPressed: (isProcessing || appliedOperations.contains('Noir & Blanc')) ? null : _toggleBlackAndWhite,
                         child: const Icon(Icons.contrast),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: appliedOperations.contains('Noir & Blanc')
-                              ? AppTheme.darkTeal
-                              : AppTheme.lightTeal,
-                          foregroundColor: appliedOperations.contains('Noir & Blanc')
-                              ? Colors.white
-                              : AppTheme.darkTeal,
-                          padding: const EdgeInsets.all(14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          elevation: 4,
-                        ),
+                        style: appliedOperations.contains('Noir & Blanc')
+                            ? AppTheme.processingButtonAppliedStyle
+                            : AppTheme.processingButtonStyle,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -717,17 +706,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       child: ElevatedButton(
                         onPressed: (isProcessing || appliedOperations.contains('Retourné')) ? null : _flipImage,
                         child: const Icon(Icons.flip),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: appliedOperations.contains('Retourné')
-                              ? AppTheme.accent
-                              : AppTheme.lightTeal,
-                          foregroundColor: appliedOperations.contains('Retourné')
-                              ? Colors.white
-                              : AppTheme.darkTeal,
-                          padding: const EdgeInsets.all(14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          elevation: 4,
-                        ),
+                        style: appliedOperations.contains('Retourné')
+                            ? AppTheme.processingButtonAppliedStyle
+                            : AppTheme.processingButtonStyle,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -735,39 +716,26 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       child: ElevatedButton(
                         onPressed: isProcessing ? null : _retakePhoto,
                         child: const Icon(Icons.refresh),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.lightTeal,
-                          foregroundColor: AppTheme.darkTeal,
-                          padding: const EdgeInsets.all(14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          elevation: 4,
-                        ),
+                        style: AppTheme.processingButtonStyle,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // Bouton ajouter une page
+                // Add Page Button (Pastel Green)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: isProcessing ? null : _addAnotherPage,
-                    icon: const Icon(Icons.add_photo_alternate, size: 24),
-                    label: const Text(
-                      'Ajouter une page',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    ),
-                    style: AppTheme.secondaryButtonStyle.copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
+                    icon: const Icon(Icons.add, size: 24),
+                    label: const Text('Ajouter Page'),
+                    style: AppTheme.addPageButtonStyle,
                   ),
                 ),
                 const SizedBox(height: 12),
 
-                // Bouton principal PDF
+                // Generate PDF Button (Pastel Red)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -784,25 +752,21 @@ class _PreviewScreenState extends State<PreviewScreen> {
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Icon(Icons.picture_as_pdf, size: 24),
+                        : const Icon(Icons.description, size: 24),
                     label: Text(
                       isConverting
                           ? 'Conversion...'
                           : 'Générer PDF (${ScanSessionService.getDocumentCount()} page${ScanSessionService.getDocumentCount() > 1 ? 's' : ''})',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
                     ),
-                    style: AppTheme.primaryButtonStyle.copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 18),
-                      ),
-                    ),
+                    style: AppTheme.generatePdfButtonStyle,
                   ),
                 ),
               ],
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
