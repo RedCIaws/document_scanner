@@ -4,6 +4,7 @@ import '../services/image_processing_service.dart';
 import '../services/pdf_service.dart';
 import '../services/scan_session.dart';
 import '../models/scan_document.dart';
+import '../theme/app_theme.dart';
 import 'camera_screen.dart';
 import '../main.dart'; // Pour accéder à la liste cameras
 
@@ -567,8 +568,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
       appBar: AppBar(
         title: Text(
             'Aperçu (${ScanSessionService.getDocumentCount()} page${ScanSessionService.getDocumentCount() > 1 ? 's' : ''})'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
         actions: [
           // Bouton Undo
           IconButton(
@@ -595,18 +594,21 @@ class _PreviewScreenState extends State<PreviewScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
-              color: Colors.blue.shade50,
+              color: AppTheme.lightCard,
               child: Row(
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.darkTeal),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Text(
                     isConverting ? 'Génération du PDF...' : processingStatus,
-                    style: TextStyle(color: Colors.blue.shade700),
+                    style: TextStyle(color: AppTheme.darkTeal, fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -617,16 +619,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.grey.shade100,
+              color: AppTheme.cardBackground,
               child: Row(
                 children: [
-                  Icon(Icons.history, size: 16, color: Colors.grey.shade600),
+                  Icon(Icons.history, size: 16, color: AppTheme.darkTeal),
                   const SizedBox(width: 8),
                   Text(
                     'État actuel: ${actionHistory.last.actionName}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: AppTheme.textPrimary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -636,7 +638,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       '${actionHistory.length - 1} action${actionHistory.length > 2 ? 's' : ''} à annuler',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.blue.shade600,
+                        color: AppTheme.accent,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                 ],
@@ -680,13 +683,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         child: const Icon(Icons.auto_fix_high),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: appliedOperations.contains('Optimisé') 
-                              ? Colors.green.shade100 
-                              : Colors.grey.shade200,
+                              ? AppTheme.accent 
+                              : AppTheme.lightTeal,
                           foregroundColor: appliedOperations.contains('Optimisé')
-                              ? Colors.green.shade600
-                              : Colors.grey.shade800,
-                          padding: EdgeInsets.all(12),
-                          elevation: 0,
+                              ? Colors.white
+                              : AppTheme.darkTeal,
+                          padding: const EdgeInsets.all(14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 4,
                         ),
                       ),
                     ),
@@ -697,13 +701,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         child: const Icon(Icons.contrast),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: appliedOperations.contains('Noir & Blanc')
-                              ? Colors.grey.shade800
-                              : Colors.grey.shade200,
+                              ? AppTheme.darkTeal
+                              : AppTheme.lightTeal,
                           foregroundColor: appliedOperations.contains('Noir & Blanc')
                               ? Colors.white
-                              : Colors.grey.shade800,
-                          padding: EdgeInsets.all(12),
-                          elevation: 0,
+                              : AppTheme.darkTeal,
+                          padding: const EdgeInsets.all(14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 4,
                         ),
                       ),
                     ),
@@ -714,13 +719,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         child: const Icon(Icons.flip),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: appliedOperations.contains('Retourné')
-                              ? Colors.blue.shade100
-                              : Colors.grey.shade200,
+                              ? AppTheme.accent
+                              : AppTheme.lightTeal,
                           foregroundColor: appliedOperations.contains('Retourné')
-                              ? Colors.blue.shade600
-                              : Colors.grey.shade800,
-                          padding: EdgeInsets.all(12),
-                          elevation: 0,
+                              ? Colors.white
+                              : AppTheme.darkTeal,
+                          padding: const EdgeInsets.all(14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 4,
                         ),
                       ),
                     ),
@@ -730,10 +736,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         onPressed: isProcessing ? null : _retakePhoto,
                         child: const Icon(Icons.refresh),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.grey.shade800,
-                          padding: EdgeInsets.all(12),
-                          elevation: 0,
+                          backgroundColor: AppTheme.lightTeal,
+                          foregroundColor: AppTheme.darkTeal,
+                          padding: const EdgeInsets.all(14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 4,
                         ),
                       ),
                     ),
@@ -749,14 +756,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     icon: const Icon(Icons.add_photo_alternate, size: 24),
                     label: const Text(
                       'Ajouter une page',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 2,
+                    style: AppTheme.secondaryButtonStyle.copyWith(
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(vertical: 16),
+                      ),
                     ),
                   ),
                 ),
@@ -787,11 +792,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w600),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 3,
+                    style: AppTheme.primaryButtonStyle.copyWith(
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(vertical: 18),
+                      ),
                     ),
                   ),
                 ),
