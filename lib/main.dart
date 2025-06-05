@@ -37,77 +37,82 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Only Scan'),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    children: [
-                      // Add flexible spacing at top
-                      SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-                  // Welcome Card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.document_scanner,
-                            size: 80,
-                            color: AppTheme.darkTeal,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.appGradient,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      children: [
+                        // Add flexible spacing at top
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                        // Welcome Card
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.document_scanner,
+                                  size: 80,
+                                  color: AppTheme.textPrimary,
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  'Only Scan',
+                                  style: Theme.of(context).textTheme.headlineMedium,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Transformez vos photos en PDF de qualité professionnelle',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Scanner de Documents',
-                            style: Theme.of(context).textTheme.headlineMedium,
-                            textAlign: TextAlign.center,
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Features List
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Fonctionnalités',
+                                  style: Theme.of(context).textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: 16),
+                                _buildFeatureItem(Icons.auto_fix_high, 'Amélioration automatique'),
+                                _buildFeatureItem(Icons.crop_rotate, 'Correction de perspective'),
+                                _buildFeatureItem(Icons.picture_as_pdf, 'Export PDF multi-pages'),
+                                _buildFeatureItem(Icons.share, 'Partage facile'),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Transformez vos photos en PDF de qualité professionnelle',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                        ),
+                        // Add flexible spacing at bottom
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                      ],
                     ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Features List
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Fonctionnalités',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFeatureItem(Icons.auto_fix_high, 'Amélioration automatique'),
-                          _buildFeatureItem(Icons.crop_rotate, 'Correction de perspective'),
-                          _buildFeatureItem(Icons.picture_as_pdf, 'Export PDF multi-pages'),
-                          _buildFeatureItem(Icons.share, 'Partage facile'),
-                        ],
-                      ),
-                    ),
-                  ),
-                      // Add flexible spacing at bottom
-                      SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-                    ],
                   ),
                 ),
-              ),
               
               // Main Action Button at bottom
               Padding(
@@ -131,13 +136,14 @@ class HomeScreen extends StatelessWidget {
                     },
                     icon: const Icon(Icons.camera_alt, size: 28),
                     label: const Text('Commencer le scan'),
-                    style: AppTheme.primaryButtonStyle,
+                    style: AppTheme.primaryScanButtonStyle,
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
       ),
     );
   }
