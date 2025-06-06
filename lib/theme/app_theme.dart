@@ -146,13 +146,13 @@ class AppTheme {
   
   // Primary scan button for front page - discrete and integrated
   static ButtonStyle get primaryScanButtonStyle => ElevatedButton.styleFrom(
-    backgroundColor: Colors.white.withOpacity(0.9),
-    foregroundColor: textPrimary,
+    backgroundColor: const Color(0xFF334454),
+    foregroundColor: Colors.white,
     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-    elevation: 2,
-    shadowColor: Colors.black.withOpacity(0.1),
-    side: BorderSide(color: textPrimary.withOpacity(0.2), width: 1),
+    elevation: 4,
+    shadowColor: Colors.black.withOpacity(0.2),
+    side: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
     textStyle: const TextStyle(
       fontSize: 20, 
       fontWeight: FontWeight.w600,
