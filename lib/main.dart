@@ -46,116 +46,159 @@ class HomeScreen extends StatelessWidget {
           gradient: AppTheme.appGradient,
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Column(
-                      children: [
-                        // Add flexible spacing at top
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-                        // Welcome Card
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Column(
-                              children: [
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final screenHeight = constraints.maxHeight;
+              final isSmallScreen = screenHeight < 600;
+              
+              return Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
+                child: Column(
+                  children: [
+                    // Top spacing - smaller on small screens
+                    SizedBox(height: isSmallScreen ? 8 : 16),
+                    
+                    // Welcome Card - adaptive size
+                    Expanded(
+                      flex: isSmallScreen ? 2 : 3,
+                      child: Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(isSmallScreen ? 12 : 24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!isSmallScreen)
                                 Icon(
                                   Icons.document_scanner,
-                                  size: 80,
+                                  size: 60,
                                   color: AppTheme.textPrimary,
                                 ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  'Only Scan',
-                                  style: Theme.of(context).textTheme.headlineMedium,
-                                  textAlign: TextAlign.center,
+                              if (!isSmallScreen) const SizedBox(height: 16),
+                              Text(
+                                'Transformez vos photos en PDF de qualité professionnelle',
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 11 : 18,
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                  height: isSmallScreen ? 1.2 : 1.4,
                                 ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Transformez vos photos en PDF de qualité professionnelle',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
+                                textAlign: TextAlign.center,
+                                maxLines: 3,
+                              ),
+                            ],
                           ),
                         ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Features List
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Fonctionnalités',
-                                  style: Theme.of(context).textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildFeatureItem(Icons.auto_fix_high, 'Amélioration automatique'),
-                                _buildFeatureItem(Icons.crop_rotate, 'Correction de perspective'),
-                                _buildFeatureItem(Icons.picture_as_pdf, 'Export PDF multi-pages'),
-                                _buildFeatureItem(Icons.share, 'Partage facile'),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // Add flexible spacing at bottom
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.05),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              
-              // Main Action Button at bottom
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      if (cameras.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CameraScreen(cameras: cameras),
+                    
+                    SizedBox(height: isSmallScreen ? 8 : 16),
+                    
+                    // Features List - adaptive size
+                    Expanded(
+                      flex: isSmallScreen ? 2 : 3,
+                      child: Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(isSmallScreen ? 8 : 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Fonctionnalités',
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 14 : 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: isSmallScreen ? 4 : 12),
+                              Flexible(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    _buildFeatureItem(Icons.auto_fix_high, 'Amélioration automatique', isSmallScreen),
+                                    _buildFeatureItem(Icons.crop_rotate, 'Correction de perspective', isSmallScreen),
+                                    _buildFeatureItem(Icons.picture_as_pdf, 'Export PDF multi-pages', isSmallScreen),
+                                    _buildFeatureItem(Icons.share, 'Partage facile', isSmallScreen),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Aucune caméra disponible')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.camera_alt, size: 28),
-                    label: const Text('Commencer le scan'),
-                    style: AppTheme.primaryScanButtonStyle,
-                  ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Spacing before button
+                    SizedBox(height: isSmallScreen ? 8 : 16),
+                  
+                    // Main Action Button at bottom
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          if (cameras.isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CameraScreen(cameras: cameras),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Aucune caméra disponible')),
+                            );
+                          }
+                        },
+                        icon: Icon(Icons.camera_alt, size: isSmallScreen ? 24 : 28),
+                        label: Text(
+                          'Commencer le scan',
+                          style: TextStyle(fontSize: isSmallScreen ? 16 : 20),
+                        ),
+                        style: AppTheme.primaryScanButtonStyle.copyWith(
+                          padding: MaterialStateProperty.all(
+                            EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 24 : 40,
+                              vertical: isSmallScreen ? 12 : 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Bottom spacing
+                    SizedBox(height: isSmallScreen ? 8 : 16),
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
-      ),
       ),
     );
   }
   
-  Widget _buildFeatureItem(IconData icon, String text) {
+  Widget _buildFeatureItem(IconData icon, String text, bool isSmallScreen) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 2 : 4),
       child: Row(
         children: [
-          Icon(icon, color: AppTheme.accent, size: 20),
-          const SizedBox(width: 12),
-          Text(text, style: const TextStyle(fontSize: 16)),
+          Icon(
+            icon, 
+            color: AppTheme.accent, 
+            size: isSmallScreen ? 16 : 18,
+          ),
+          SizedBox(width: isSmallScreen ? 8 : 10),
+          Expanded(
+            child: Text(
+              text, 
+              style: TextStyle(fontSize: isSmallScreen ? 12 : 14),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
