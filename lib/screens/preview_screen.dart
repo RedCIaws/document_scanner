@@ -624,7 +624,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppTheme.cardBackground,
+              color: Colors.white.withOpacity(0.15),
               child: Row(
                 children: [
                   Icon(Icons.history, size: 16, color: AppTheme.darkTeal),
@@ -655,16 +655,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Expanded(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              child: Card(
-                elevation: 4,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(currentImagePath),
-                    fit: BoxFit.contain,
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Image.file(
+                File(currentImagePath),
+                fit: BoxFit.contain,
               ),
             ),
           ),
